@@ -8,6 +8,7 @@ import {
   donationsTable,
 } from "@workspace/db";
 import { getStripe } from "../../lib/stripe";
+import { stripeCheckoutIdempotencyKey } from "../../lib/stripe-coin-fulfillment";
 
 async function completeDonation(session: {
   id: string;
@@ -68,19 +69,8 @@ async function completeCoinPack(session: {
   const packSlug = session.metadata?.packSlug;
   if (!walletId || !packSlug) return;
 
-  const paymentIntentId =
-    typeof session.payment_intent === "string"
-      ? session.payment_intent
-      : session.payment_intent?.id ?? null;
-
-  if (paymentIntentId) {
-    const [dup] = await db
-      .select()
-      .from(coinPurchasesTable)
-      .where(eq(coinPurchasesTable.stripePaymentIntentId, paymentIntentId))
-      .limit(1);
-    if (dup) return;
-  }
+  const idempotencyKey = stripeCheckoutIdempotencyKey(session);
+  if (!idempotencyKey) return;
 
   const [pack] = await db
     .select()
@@ -92,6 +82,18 @@ async function completeCoinPack(session: {
   const totalCoins = pack.coins + pack.bonusCoins;
 
   await db.transaction(async (tx) => {
+    // Serialize overlapping Stripe retries (Render cold start + 30s timeout).
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext('coin_pack'), hashtext(${idempotencyKey}))`,
+    );
+
+    const [dup] = await tx
+      .select({ id: coinPurchasesTable.id })
+      .from(coinPurchasesTable)
+      .where(eq(coinPurchasesTable.stripePaymentIntentId, idempotencyKey))
+      .limit(1);
+    if (dup) return;
+
     await tx
       .insert(walletsTable)
       .values({ id: walletId, coins: totalCoins })
@@ -108,7 +110,7 @@ async function completeCoinPack(session: {
       packSlug,
       coinsAwarded: totalCoins,
       amountPaid: session.amount_total ?? pack.price,
-      stripePaymentIntentId: paymentIntentId,
+      stripePaymentIntentId: idempotencyKey,
       status: "completed",
     });
   });
