@@ -10,6 +10,7 @@ const envDir = path.resolve(import.meta.dirname, "..", "..");
 // the wrong process → `http proxy error` for every `/api/*` call.
 export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, envDir, "");
+  const portfolioDemo = env.VITE_PORTFOLIO_DEMO === "1";
 
   const rawWebPort = env.VITE_DEV_PORT ?? env.WEB_DEV_PORT ?? "5173";
   const webPort = Number(rawWebPort);
@@ -50,6 +51,18 @@ export default defineConfig(async ({ mode }) => {
     ],
     resolve: {
       alias: {
+        ...(portfolioDemo
+          ? {
+              "@clerk/react/internal": path.resolve(
+                import.meta.dirname,
+                "src/test/portfolio-clerk-internal.ts",
+              ),
+              "@clerk/react": path.resolve(
+                import.meta.dirname,
+                "src/test/portfolio-clerk.tsx",
+              ),
+            }
+          : {}),
         "@": path.resolve(import.meta.dirname, "src"),
         "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
       },

@@ -61,6 +61,9 @@ artifacts/habit-mobile/secrets/
 # Netlify
 .netlify
 
+# Portfolio walkthrough recordings
+/portfolio-videos/*.webm
+
 
 artifacts/api-server/public/pets/_card_backups/
 .cache/
