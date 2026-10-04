@@ -11,6 +11,14 @@ const envDir = path.resolve(import.meta.dirname, "..", "..");
 export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, envDir, "");
 
+  const viteClerkKey = env.VITE_CLERK_PUBLISHABLE_KEY?.trim();
+  const nextPublicClerkKey = env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+  if (viteClerkKey && nextPublicClerkKey && viteClerkKey !== nextPublicClerkKey) {
+    throw new Error(
+      "VITE_CLERK_PUBLISHABLE_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY are both set but do not match. Use the same Clerk publishable key for both.",
+    );
+  }
+
   const rawWebPort = env.VITE_DEV_PORT ?? env.WEB_DEV_PORT ?? "5173";
   const webPort = Number(rawWebPort);
   if (Number.isNaN(webPort) || webPort <= 0) {
@@ -32,6 +40,7 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     envDir,
+    envPrefix: ["VITE_", "NEXT_PUBLIC_"],
     base: env.BASE_PATH ?? "/",
     plugins: [
       react(),

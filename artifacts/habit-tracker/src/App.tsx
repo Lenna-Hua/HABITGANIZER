@@ -17,10 +17,15 @@ import { LanguageSelect } from "@/components/language-select";
 import { I18nProvider, useTranslation } from "@/i18n";
 
 // Resolve publishable key from hostname so the same build can serve multiple
-// Clerk custom domains. Falls back to VITE_CLERK_PUBLISHABLE_KEY.
+// Clerk custom domains. Falls back to the configured Clerk publishable key.
+// VITE_ is the native Vite name; NEXT_PUBLIC_ is accepted as a compatibility
+// alias because older setup notes used that name for the same Clerk key.
+const configuredClerkPublishableKey =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.trim() ||
+  import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+  configuredClerkPublishableKey,
 );
 
 // In prod this is automatically injected; in dev it is empty.
@@ -42,7 +47,7 @@ function stripBase(p: string): string {
 }
 
 if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY or NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY");
 }
 
 const clerkAppearance = createClerkAppearance(basePath || "/");
