@@ -252,6 +252,10 @@ DATABASE_URL="paste-your-neon-url-here" pnpm --filter @workspace/db run push
 3. After Render gives you a URL, come back and add that domain under Clerk
    **Domains / Allowed origins**.
 
+For production smoke-test users, Netlify/Render key matching, and dedicated
+test-admin setup, see
+[`docs/clerk-test-admin-runbook.md`](docs/clerk-test-admin-runbook.md).
+
 #### Step 3 — Deploy on Render (API + website together)
 
 1. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Web Service**.
