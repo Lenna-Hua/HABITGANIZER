@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useAuth, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useAuth } from "@clerk/react";
 import { setAuthTokenGetter, setBaseUrl, setExtraHeadersGetter } from "@workspace/api-client-react";
 import { habitCalendarRequestHeaders } from "@workspace/habit-dates";
 import { publishableKeyFromHost } from "@clerk/react/internal";
@@ -17,10 +17,15 @@ import { LanguageSelect } from "@/components/language-select";
 import { I18nProvider, useTranslation } from "@/i18n";
 
 // Resolve publishable key from hostname so the same build can serve multiple
-// Clerk custom domains. Falls back to VITE_CLERK_PUBLISHABLE_KEY.
+// Clerk custom domains. Falls back to the configured Clerk publishable key.
+// VITE_ is the native Vite name; NEXT_PUBLIC_ is accepted as a compatibility
+// alias because older setup notes used that name for the same Clerk key.
+const configuredClerkPublishableKey =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.trim() ||
+  import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+  configuredClerkPublishableKey,
 );
 
 // In prod this is automatically injected; in dev it is empty.
@@ -42,7 +47,7 @@ function stripBase(p: string): string {
 }
 
 if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY or NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY");
 }
 
 const clerkAppearance = createClerkAppearance(basePath || "/");
@@ -216,21 +221,19 @@ function ClerkApiSessionTokenBridge() {
 
 // Invalidates the React Query cache whenever the signed-in user changes.
 function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
+  const { isLoaded, userId } = useAuth();
   const qc = useQueryClient();
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-        qc.cancelQueries();
-        qc.clear();
-      }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, qc]);
+    if (!isLoaded) return;
+    const currentUserId = userId ?? null;
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentUserId) {
+      void qc.cancelQueries();
+      qc.clear();
+    }
+    prevUserIdRef.current = currentUserId;
+  }, [isLoaded, qc, userId]);
 
   return null;
 }

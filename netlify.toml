@@ -8,7 +8,9 @@
 #   Publish directory:  from [build] below
 #
 # Required env var in Netlify UI (production needs LIVE key):
-#   VITE_CLERK_PUBLISHABLE_KEY=pk_live_...  (must match CLERK_PUBLISHABLE_KEY)
+#   VITE_CLERK_PUBLISHABLE_KEY=pk_live_...  (same value as CLERK_PUBLISHABLE_KEY)
+# If the site already has NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY from an older setup,
+# that is accepted as the same Clerk Publishable Key too. Prefer VITE_ on Netlify.
 # Also finish Clerk custom-domain DNS for clerk.habitganizer.tech, or remove the
 # custom domain in Clerk and use the default Frontend API host.
 

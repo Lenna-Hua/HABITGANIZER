@@ -108,6 +108,8 @@ DATABASE_URL=postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/habitpup?
 CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
 CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxx
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
+# If you already have this older/public name, it is the same publishable key:
+# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
 
 # Ports for local dev (you can change these)
 PORT=3001
@@ -506,7 +508,8 @@ EAS auto-increments build numbers. You only manage the human-readable version in
 | `DATABASE_URL` | Your Neon connection string |
 | `CLERK_PUBLISHABLE_KEY` | Clerk **test** publishable key |
 | `CLERK_SECRET_KEY` | Clerk **test** secret key |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk **test** publishable key |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Same Clerk **test** publishable key for the Vite web app |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Optional compatibility alias for `VITE_CLERK_PUBLISHABLE_KEY`; use the same value if present |
 | `PORT` | `3001` (API), `5173` (web) |
 
 ---
@@ -517,6 +520,7 @@ EAS auto-increments build numbers. You only manage the human-readable version in
 - [ ] Neon database provisioned and `pnpm --filter @workspace/db run push` has been run
 - [ ] `https://your-app.onrender.com/api/healthz` returns 200
 - [ ] Clerk **live** keys are used (not test keys) in all production env vars
+- [ ] Netlify has `VITE_CLERK_PUBLISHABLE_KEY=pk_live_...` or the compatibility alias `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...`; if both are set, they match exactly
 - [ ] Clerk production domain added and allowed origins configured
 - [ ] Sign-up → sign-in → create habit → complete habit → rewards flow tested end-to-end
 
