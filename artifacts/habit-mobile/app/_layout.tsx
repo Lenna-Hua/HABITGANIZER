@@ -42,7 +42,7 @@ const queryClient = new QueryClient({
 });
 
 function RootLayoutNav() {
-  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { isSignedIn, isLoaded, getToken, userId } = useAuth();
 
   // Wire Clerk session JWT before child layout effects run queries (avoids first fetch without Authorization).
   useLayoutEffect(() => {
@@ -54,16 +54,18 @@ function RootLayoutNav() {
     };
   }, [getToken]);
 
-  // Flush React Query cache when the user signs out.
-  const prevSignedInRef = React.useRef<boolean | undefined>(undefined);
+  // Flush React Query cache when Clerk switches users so one account never
+  // renders another account's cached habits, rewards, or task data.
+  const prevUserIdRef = React.useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (!isLoaded) return;
-    if (prevSignedInRef.current !== undefined && prevSignedInRef.current !== isSignedIn) {
-      queryClient.cancelQueries();
+    const currentUserId = userId ?? null;
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentUserId) {
+      void queryClient.cancelQueries();
       queryClient.clear();
     }
-    prevSignedInRef.current = isSignedIn;
-  }, [isSignedIn, isLoaded]);
+    prevUserIdRef.current = currentUserId;
+  }, [isLoaded, userId]);
 
   useEffect(() => {
     if (!isSignedIn || Platform.OS === "web") return;

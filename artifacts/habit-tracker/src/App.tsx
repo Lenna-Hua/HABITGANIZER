@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useAuth, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useAuth } from "@clerk/react";
 import { setAuthTokenGetter, setBaseUrl, setExtraHeadersGetter } from "@workspace/api-client-react";
 import { habitCalendarRequestHeaders } from "@workspace/habit-dates";
 import { publishableKeyFromHost } from "@clerk/react/internal";
@@ -221,21 +221,19 @@ function ClerkApiSessionTokenBridge() {
 
 // Invalidates the React Query cache whenever the signed-in user changes.
 function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
+  const { isLoaded, userId } = useAuth();
   const qc = useQueryClient();
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-        qc.cancelQueries();
-        qc.clear();
-      }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, qc]);
+    if (!isLoaded) return;
+    const currentUserId = userId ?? null;
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentUserId) {
+      void qc.cancelQueries();
+      qc.clear();
+    }
+    prevUserIdRef.current = currentUserId;
+  }, [isLoaded, qc, userId]);
 
   return null;
 }
