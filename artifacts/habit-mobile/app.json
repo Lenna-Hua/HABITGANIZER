@@ -56,6 +56,7 @@
       ],
       "expo-health-connect",
       "./plugins/withHealthConnectMainActivity",
+      "@react-native-community/datetimepicker",
       [
         "expo-router",
         {

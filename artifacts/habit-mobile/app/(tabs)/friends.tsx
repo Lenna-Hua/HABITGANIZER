@@ -19,6 +19,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -131,12 +132,13 @@ export default function FriendsScreen() {
   const incoming = requestsSummary.incoming;
   const outgoing = requestsSummary.outgoing;
 
-  function handleCopyCode() {
+  async function handleCopyCode() {
     if (!profile) return;
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(profile.friendCode);
-      Alert.alert("Friend code copied!");
-    } else {
+    try {
+      await Share.share({
+        message: `Add me on Habiganize! My friend code is ${profile.friendCode}`,
+      });
+    } catch {
       Alert.alert("Friend Code", profile.friendCode);
     }
   }

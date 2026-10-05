@@ -84,7 +84,14 @@ export async function syncHealthFromPhone(args: {
       return { ok: false, code: "init_failed", message: "Couldn't start Health Connect." };
     }
 
-    await requestPermission(READ_PERMISSIONS);
+    const granted = await requestPermission(READ_PERMISSIONS);
+    if (!granted || granted.length === 0) {
+      return {
+        ok: false,
+        code: "permission_denied",
+        message: "Health Connect permission wasn't granted. Open Health Connect settings and allow Habiganize to read steps, calories, sleep, and heart rate.",
+      };
+    }
 
     const [stepsAgg, kcalAgg, sleepAgg, rhrAgg, hrAgg] = await Promise.all([
       aggregateRecord({ recordType: "Steps", timeRangeFilter }).catch(() => null),

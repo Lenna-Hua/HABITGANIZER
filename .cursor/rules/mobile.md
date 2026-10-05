@@ -7,9 +7,10 @@ Read this when picking up **Play Store / EAS** or **habit-mobile** work again.
 | What | Path |
 |------|------|
 | Expo app | `artifacts/habit-mobile/` |
+| Development + Play plan | `artifacts/habit-mobile/DEVELOPMENT_PLAN.md` |
 | EAS profiles + submit | `artifacts/habit-mobile/eas.json` |
 | Store runbook (Apple + Google, secrets, checklists) | `artifacts/habit-mobile/STORE_SUBMISSION.md` |
-| Production env guard (fails build if API/web origin missing) | `artifacts/habit-mobile/app.config.ts` |
+| Production env guard (fails build if API/web/AdMob missing) | `artifacts/habit-mobile/app.config.ts` |
 | Android package / versioning | `artifacts/habit-mobile/app.json` |
 
 ## Google Play (high level)
@@ -17,29 +18,32 @@ Read this when picking up **Play Store / EAS** or **habit-mobile** work again.
 - Production Android build is an **AAB** via `eas build --profile production --platform android`.
 - `eas submit --profile production --platform android` uses `secrets/play-service-account.json` (gitignored) and defaults to **internal** track + **draft** in `eas.json`.
 - **Package name must match Play app:** `com.habitpup.app` (see `app.json` → `android.package`).
+- Production secrets: API = Render (`https://habiganize-api.onrender.com`), web origin = Netlify (`https://habitganizer.tech`), Clerk `pk_live_…`, real AdMob IDs.
 
-## Implemented in repo (previous session)
+## Implemented in repo
 
-- **Privacy + support URLs for store listings:** Express serves `GET /privacy` (static HTML) and `GET /support` (HTML with `mailto:` from env). Files: `artifacts/api-server/src/app.ts`, `artifacts/api-server/public/legal/privacy.html`. Set **`SUPPORT_CONTACT_EMAIL`** on the API (also in root `.env.example`).
-- **Web dev:** Vite proxies `/privacy` and `/support` to the API — `artifacts/habit-tracker/vite.config.ts`.
-- **Web:** Legal footer links on welcome + sign-in/up — `artifacts/habit-tracker/src/App.tsx`.
-- **Mobile auth screen:** Opens same URLs via `Linking` using **`API_URL`** (legal pages live on API origin), not only Vite — `artifacts/habit-mobile/components/AuthScreen.tsx`.
-- **Task #41 mitigation:** Clerk bearer token wired with **`useLayoutEffect`** so the first React Query fetch is less likely to run before `Authorization` is set — `artifacts/habit-mobile/app/_layout.tsx` and **`ClerkApiSessionTokenBridge`** in `artifacts/habit-tracker/src/App.tsx`.
-- **`STORE_SUBMISSION.md`:** Expanded Google Console steps (service account, testing-policy link), EAS secrets including **`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`**, Data safety wording for **Clerk** (not “Replit Auth”), promotion notes.
-- **TypeScript:** Removed `tsconfig.json` **project references** entry pointing at `@workspace/api-client-react` composite build — avoids needing a pre-built `dist` for workspace typecheck; `pnpm --filter @workspace/habit-mobile run typecheck` should run standalone.
+- Privacy / support / terms live on API; Netlify proxies them at `https://habitganizer.tech/{privacy,support,terms}`.
+- Mobile auth opens legal URLs via `WEB_ORIGIN` then `API_URL` (`AuthScreen.tsx`).
+- Production EAS builds **reject** Google sample AdMob IDs.
+- Health Connect MainActivity plugin hardened (v1.0.2); offline transform check: `node scripts/verify-health-connect-plugin.cjs`.
+- Friend code share uses native `Share` (not web clipboard).
+- Expo SDK 54 package alignment for notifications / datetimepicker / build-properties / store-review.
+- Dead local username/password auth removed (`AuthContext` / `lib/auth.ts`).
+- `expo-doctor` directory check excludes known Health Connect / Clerk-transitive noise.
 
 ## Still manual / verify next time
 
-1. **Expo:** `pnpm exec eas login` from `artifacts/habit-mobile`; **`eas init`** until `extra.eas.projectId` exists in `app.json` if missing.
-2. **EAS project secrets:** `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_WEB_ORIGIN`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (**`pk_live_…`** for production). Commands are in `STORE_SUBMISSION.md`.
-3. **Play upload key:** GCP service account JSON → `artifacts/habit-mobile/secrets/play-service-account.json`; grant Play Console API access per runbook.
-4. **Run locally before a store build:** `pnpm dlx expo-doctor@latest` and `pnpm exec expo prebuild --no-install --clean` (from habit-mobile). Last **expo-doctor** pass flagged **version skew**: `expo-notifications` and `@react-native-community/datetimepicker` did not match Expo SDK 54 expectations; **`pnpm exec expo install expo-notifications @react-native-community/datetimepicker`** from habit-mobile was started to align versions but **may not have finished** — re-run and commit lockfile updates if needed.
-5. **`eas build` / `eas submit`:** Require logged-in Expo account + network; not run to completion in that session.
+1. **Expo:** `eas login` + `eas init` until `extra.eas.projectId` exists in `app.json`.
+2. **EAS project secrets:** see `STORE_SUBMISSION.md` / `DEVELOPMENT_PLAN.md` (API, web, Clerk live, AdMob).
+3. **Play upload key:** GCP service account JSON → `artifacts/habit-mobile/secrets/play-service-account.json`.
+4. **Prebuild:** `pnpm exec expo prebuild --platform android --clean` and confirm `MainActivity.kt` has the Health Connect delegate.
+5. **`eas build` / `eas submit`:** Require logged-in Expo account + network.
 
 ## Quick commands (from `artifacts/habit-mobile`)
 
-```powershell
+```bash
 pnpm --filter @workspace/habit-mobile run typecheck
+node scripts/verify-health-connect-plugin.cjs
 pnpm dlx expo-doctor@latest
 pnpm exec eas build --profile production --platform android
 pnpm exec eas submit --profile production --platform android

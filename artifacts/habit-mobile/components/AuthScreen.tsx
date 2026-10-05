@@ -3,6 +3,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -19,10 +20,27 @@ import { BrutalCard } from "@/components/BrutalCard";
 import { LanguageSelect } from "@/components/LanguageSelect";
 import { useColors } from "@/hooks/useColors";
 import { useTranslation } from "@/i18n";
-import { API_URL } from "@/lib/config";
+import { API_URL, WEB_ORIGIN } from "@/lib/config";
 
 type Mode = "sign-in" | "sign-up";
 type SignUpStep = "form" | "verify";
+
+/** Prefer the public web origin (Netlify proxies /privacy|/support|/terms to the API). */
+function legalBaseUrl(): string {
+  return WEB_ORIGIN || API_URL;
+}
+
+function openLegalPath(path: "/privacy" | "/terms" | "/support") {
+  const base = legalBaseUrl();
+  if (!base) {
+    Alert.alert(
+      "Unavailable",
+      "Legal pages need EXPO_PUBLIC_WEB_ORIGIN or EXPO_PUBLIC_API_URL to be set for this build.",
+    );
+    return;
+  }
+  void Linking.openURL(`${base}${path}`);
+}
 
 // ─── Sign-in panel ──────────────────────────────────────────────────────────
 
@@ -283,15 +301,15 @@ export function ClerkAuthScreen() {
         </BrutalCard>
 
         <View style={styles.legalRow}>
-          <Pressable onPress={() => Linking.openURL(`${API_URL}/privacy`)}>
+          <Pressable onPress={() => openLegalPath("/privacy")}>
             <Text style={[styles.legalLink, { color: colors.primary }]}>{t("common.privacy")}</Text>
           </Pressable>
           <Text style={[styles.legalDot, { color: colors.mutedForeground }]}> · </Text>
-          <Pressable onPress={() => Linking.openURL(`${API_URL}/terms`)}>
+          <Pressable onPress={() => openLegalPath("/terms")}>
             <Text style={[styles.legalLink, { color: colors.primary }]}>{t("common.terms")}</Text>
           </Pressable>
           <Text style={[styles.legalDot, { color: colors.mutedForeground }]}> · </Text>
-          <Pressable onPress={() => Linking.openURL(`${API_URL}/support`)}>
+          <Pressable onPress={() => openLegalPath("/support")}>
             <Text style={[styles.legalLink, { color: colors.primary }]}>{t("common.support")}</Text>
           </Pressable>
         </View>
