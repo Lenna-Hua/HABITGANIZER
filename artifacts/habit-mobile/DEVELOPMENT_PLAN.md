@@ -22,7 +22,7 @@ This is the wrap-up plan for shipping Habiganize: web (Netlify) + API (Render) +
 | EAS Android production profile | Configured (`eas.json` → AAB, internal draft submit) |
 | EAS `projectId` | **Missing** — run `eas init` once |
 | SDK package alignment | Fixed in this pass (notifications / datetimepicker / etc.) |
-| Health Connect MainActivity plugin | Hardened; still needs device/prebuild verification |
+| Health Connect MainActivity plugin | Hardened + prebuild-verified |
 | AdMob production IDs | **Manual** — must set EAS secrets (test IDs blocked on production builds) |
 | Play Console listing / Data safety | **Manual** |
 
