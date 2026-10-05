@@ -91,36 +91,37 @@ This installs every package for every workspace in one command.
 
 ### 0.5 — Set up local environment variables
 
-Create a `.env` file at the root of the project (it is already gitignored):
+Create a **single** `.env` at the root of the project (it is already gitignored):
 
 ```bash
 cp .env.example .env
+ln -sfn ../../.env artifacts/habit-mobile/.env   # Expo reads the same file
 ```
 
-Edit `.env` with your real values:
+Edit `.env` with your real values. It covers API, web, and mobile (`EXPO_PUBLIC_*`).
 
 ```env
 # PostgreSQL — get a free database from https://neon.tech
 DATABASE_URL=postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/habitpup?sslmode=require
 
 # Clerk — from https://clerk.com → your app → API Keys
-# Use the TEST/DEVELOPMENT keys for local work, LIVE keys for production
 CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
 CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxx
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
 
-# Ports for local dev (you can change these)
+# Ports for local dev
 PORT=3001
+VITE_DEV_PORT=5173
+API_URL=http://localhost:3001
+
+# Mobile (Expo)
+EXPO_PUBLIC_API_URL=http://localhost:3001
+EXPO_PUBLIC_WEB_ORIGIN=http://localhost:5173
 ```
 
-> For the mobile app, create a separate `.env` file inside `artifacts/habit-mobile/`:
->
-> ```env
-> EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
-> EXPO_PUBLIC_API_URL=http://localhost:3001
-> EXPO_PUBLIC_WEB_ORIGIN=http://localhost:3001
-> ```
-
+> Do **not** keep a separate filled-in `artifacts/habit-mobile/.env` — use the root file (symlink above).
+> `bash scripts/setup.sh` creates the root `.env` and the mobile symlink automatically.
 ### 0.6 — Run database migrations
 
 ```bash

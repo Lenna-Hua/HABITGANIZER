@@ -1,4 +1,47 @@
+/**
+ * Load monorepo root `.env` into process.env (Expo only auto-loads local `.env`).
+ * Safe no-op if the file is missing. Does not override vars already set.
+ */
+import fs from "node:fs";
+import path from "node:path";
+
 import type { ConfigContext, ExpoConfig } from "expo/config";
+
+function loadRootEnv(): void {
+  const candidates = [
+    path.resolve(__dirname, "../../.env"),
+    path.resolve(process.cwd(), "../../.env"),
+    path.resolve(process.cwd(), ".env"),
+  ];
+  for (const file of candidates) {
+    if (!fs.existsSync(file)) continue;
+    const text = fs.readFileSync(file, "utf8");
+    for (const rawLine of text.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const eq = line.indexOf("=");
+      if (eq <= 0) continue;
+      const key = line.slice(0, eq).trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+      if (process.env[key] !== undefined) continue;
+      let value = line.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
+    }
+    break;
+  }
+
+  // One Clerk publishable key for web + mobile when EXPO_PUBLIC_* is omitted.
+  if (!clean(process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY)) {
+    const clerk = clean(process.env.CLERK_PUBLISHABLE_KEY);
+    if (clerk) process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = clerk;
+  }
+}
 
 function clean(value: string | undefined | null): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -9,6 +52,8 @@ function clean(value: string | undefined | null): string | undefined {
 function withScheme(url: string): string {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
+
+loadRootEnv();
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const webOriginEnv = clean(process.env.EXPO_PUBLIC_WEB_ORIGIN);

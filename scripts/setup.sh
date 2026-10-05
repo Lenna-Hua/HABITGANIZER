@@ -16,36 +16,40 @@ warn() { echo -e "${YELLOW}! $*${RESET}"; }
 
 echo -e "${BOLD}HabitPup — developer setup${RESET}"
 echo "This script will:"
-echo "  1. Copy .env.example files if .env files don't exist yet"
-echo "  2. Run pnpm install"
-echo "  3. Prompt for DATABASE_URL and push the database schema"
+echo "  1. Create a single root .env (web + API + mobile) if missing"
+echo "  2. Symlink artifacts/habit-mobile/.env → ../../.env"
+echo "  3. Run pnpm install"
+echo "  4. Prompt for DATABASE_URL and push the database schema"
 echo ""
 
-# ── Step 1: Root .env ────────────────────────────────────────────────────────
+# ── Step 1: Root .env (combined for web, API, and mobile) ────────────────────
 step "Checking root .env …"
 if [ -f ".env" ]; then
     warn ".env already exists — skipping copy"
 else
     cp .env.example .env
-    ok "Created .env from .env.example"
+    ok "Created .env from .env.example (includes EXPO_PUBLIC_* for mobile)"
     echo ""
     echo -e "  ${YELLOW}Open .env and fill in the following values before continuing:${RESET}"
     echo "    DATABASE_URL       — PostgreSQL connection string (e.g. from https://neon.tech)"
     echo "    CLERK_PUBLISHABLE_KEY / CLERK_SECRET_KEY / VITE_CLERK_PUBLISHABLE_KEY"
     echo "                       — from https://clerk.com → your app → API Keys"
+    echo "    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY — same pk_test_… as CLERK_PUBLISHABLE_KEY"
     echo "    SESSION_SECRET     — run: openssl rand -base64 32"
 fi
 
-# ── Step 2: Mobile .env ──────────────────────────────────────────────────────
-step "Checking artifacts/habit-mobile/.env …"
-if [ -f "artifacts/habit-mobile/.env" ]; then
-    warn "artifacts/habit-mobile/.env already exists — skipping copy"
+# ── Step 2: Mobile .env → symlink to root ────────────────────────────────────
+step "Linking artifacts/habit-mobile/.env → root .env …"
+MOBILE_ENV="artifacts/habit-mobile/.env"
+if [ -L "$MOBILE_ENV" ] || [ -f "$MOBILE_ENV" ]; then
+    if [ -L "$MOBILE_ENV" ] && [ "$(readlink "$MOBILE_ENV")" = "../../.env" ]; then
+        ok "Mobile .env already symlinked to root"
+    else
+        warn "$MOBILE_ENV exists — leave it, or replace with: ln -sfn ../../.env artifacts/habit-mobile/.env"
+    fi
 else
-    cp artifacts/habit-mobile/.env.example artifacts/habit-mobile/.env
-    ok "Created artifacts/habit-mobile/.env from .env.example"
-    echo ""
-    echo -e "  ${YELLOW}Open artifacts/habit-mobile/.env and set:${RESET}"
-    echo "    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY — same pk_test_… value as CLERK_PUBLISHABLE_KEY above"
+    ln -sfn ../../.env "$MOBILE_ENV"
+    ok "Symlinked artifacts/habit-mobile/.env → ../../.env"
 fi
 
 # ── Step 3: pnpm install ─────────────────────────────────────────────────────
@@ -88,7 +92,7 @@ echo ""
 echo -e "${GREEN}${BOLD}Setup complete!${RESET}"
 echo ""
 echo "Next steps:"
-echo "  • Make sure .env and artifacts/habit-mobile/.env have all real values filled in"
-echo "  • Start the API server:    pnpm --filter @workspace/api-server run dev"
+echo "  • Make sure the root .env has real values (mobile uses the same file)"
+echo "  • Start the API server:    pnpm --filter @workspace/api-server run dev:local"
 echo "  • Start the web app:       pnpm --filter @workspace/habit-tracker run dev"
-echo "  • Start the mobile app:    pnpm --filter @workspace/habit-mobile run start"
+echo "  • Start the mobile app:    pnpm --filter @workspace/habit-mobile run dev:local"
