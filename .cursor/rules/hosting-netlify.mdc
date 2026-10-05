@@ -13,4 +13,6 @@ This project's **web frontend** deploys on **Netlify**, not Vercel.
 
 The **API** is **Render** (`https://habiganize-api.onrender.com`). Netlify proxies `/api`, `/privacy`, `/support`, and `/terms` there.
 
-If the user says "Vercel", "deploy on Vercel", or "sync to Vercel", **correct them immediately**: we build and host the web app on **Netlify**. Do not use Vercel CLI, Vercel MCP deploy tools, or add `vercel.json` unless they explicitly decide to migrate off Netlify.
+If the user says "Vercel", "deploy on Vercel", or "sync to Vercel", **correct them immediately**: we build and host the web app on **Netlify**. Do not use Vercel CLI, Vercel MCP deploy tools, or set up a real Vercel app deploy.
+
+Root `vercel.json` exists only as a **kill switch** (`git.deploymentEnabled: false` + `ignoreCommand`) so leftover Vercel↔GitHub integration does not keep failing PR checks. Do not turn it into a real Vercel deploy config. See `DEPLOY.md`.

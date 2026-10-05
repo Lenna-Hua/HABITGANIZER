@@ -301,7 +301,7 @@ eas secret:create --scope project --name EXPO_PUBLIC_WEB_ORIGIN --value https://
 ### Paid options (skip unless you want always-on without sleep)
 
 - **Railway** (~$5/mo Hobby after trial) — always-on API.
-- **Netlify** hosts the frontend only. The Express API stays on Render (Vercel is not used).
+- **Netlify** hosts the frontend only. The Express API stays on Render. Do not use Vercel (see `DEPLOY.md` / root `vercel.json`).
 
 ---
 

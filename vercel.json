@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": false
+  },
+  "github": {
+    "enabled": false
+  },
+  "ignoreCommand": "echo 'Habiganize is Netlify-only; skipping Vercel build' && exit 0"
+}
