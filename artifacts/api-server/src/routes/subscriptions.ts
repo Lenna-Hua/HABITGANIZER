@@ -196,9 +196,10 @@ router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) =
     }
 
     const totalCoins = pack.coins + pack.bonusCoins;
+    // Checkout Studio shape (keys from env; return client_secret for embedded form — not session.url redirect).
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      ui_mode: "form",
       line_items: [
         {
           quantity: 1,
@@ -212,17 +213,12 @@ router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) =
           },
         },
       ],
-      success_url: `${origin}/premium?coins=1`,
-      cancel_url: `${origin}/premium?coins=cancelled`,
-      client_reference_id: walletId,
-      metadata: {
-        kind: "coin_pack",
-        walletId,
-        packSlug: slug,
-      },
-    });
+      billing_address_collection: "auto",
+      submit_type: "auto",
+      integration_identifier: "custom_embedded_web_0001",
+    } as Parameters<typeof stripe.checkout.sessions.create>[0]);
 
-    res.json({ url: session.url, sessionId: session.id });
+    res.json({ client_secret: session.client_secret });
   } catch (err) {
     const status = (err as { status?: number }).status ?? 500;
     req.log.error({ err }, "Failed to create coin pack checkout");

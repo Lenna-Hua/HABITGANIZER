@@ -8,6 +8,7 @@ import {
   Show,
   SignInButton,
 } from "@clerk/react";
+import { StripeCheckoutDialog } from "@/components/stripe-checkout-dialog";
 import {
   Crown,
   Zap,
@@ -118,6 +119,9 @@ export default function PremiumPage() {
   const [donateAmount, setDonateAmount] = useState(500);
   const [donateMessage, setDonateMessage] = useState("");
   const [customAmount, setCustomAmount] = useState("");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutTitle, setCheckoutTitle] = useState("Checkout");
+  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
 
   const clerkPremium =
     isLoaded &&
@@ -149,9 +153,12 @@ export default function PremiumPage() {
 
   const buyCoinsMutation = useMutation({
     mutationFn: async (packSlug: string) =>
-      apiPost<{ url: string }>(`/api/coin-packs/checkout/${packSlug}`),
+      apiPost<{ client_secret: string }>(`/api/coin-packs/checkout/${packSlug}`),
     onSuccess: (data) => {
-      if (data.url) window.location.assign(data.url);
+      if (!data.client_secret) return;
+      setCheckoutTitle(t("premium.buyStripe"));
+      setCheckoutClientSecret(data.client_secret);
+      setCheckoutOpen(true);
     },
     onError: (error: Error) => {
       toast({
@@ -164,12 +171,15 @@ export default function PremiumPage() {
 
   const donateMutation = useMutation({
     mutationFn: async () =>
-      apiPost<{ url: string }>("/api/donations/checkout", {
+      apiPost<{ client_secret: string }>("/api/donations/checkout", {
         amountCents: donateAmount,
         message: donateMessage.trim() || undefined,
       }),
     onSuccess: (data) => {
-      if (data.url) window.location.assign(data.url);
+      if (!data.client_secret) return;
+      setCheckoutTitle(t("premium.supportTitle"));
+      setCheckoutClientSecret(data.client_secret);
+      setCheckoutOpen(true);
     },
     onError: (error: Error) => {
       toast({
@@ -496,6 +506,16 @@ export default function PremiumPage() {
           <UserProfile appearance={clerkAppearance} />
         </DialogContent>
       </Dialog>
+
+      <StripeCheckoutDialog
+        open={checkoutOpen}
+        title={checkoutTitle}
+        clientSecret={checkoutClientSecret}
+        onOpenChange={(open) => {
+          setCheckoutOpen(open);
+          if (!open) setCheckoutClientSecret(null);
+        }}
+      />
     </div>
   );
 }
