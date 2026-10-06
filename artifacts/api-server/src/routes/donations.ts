@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, donationsTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { financialRateLimit } from "../middlewares/rate-limit";
-import { requireStripe, resolveAppOrigin } from "../lib/stripe";
+import { requireStripe, resolveAppOrigin, httpStatusFromError } from "../lib/stripe";
 
 const router = Router();
 
@@ -110,13 +110,14 @@ router.post("/donations/checkout", financialRateLimit, async (req, res) => {
 
     res.json({ url: session.url, sessionId: session.id });
   } catch (err) {
-    const status = (err as { status?: number }).status ?? 500;
+    const status = httpStatusFromError(err);
     req.log.error({ err }, "Failed to create donation checkout");
     res.status(status).json({
       error:
         status === 503
           ? "Donations are temporarily unavailable. Please try again later."
           : "Failed to start donation checkout",
+      code: (err as { code?: string }).code,
     });
   }
 });

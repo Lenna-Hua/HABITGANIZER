@@ -149,9 +149,25 @@ export default function PremiumPage() {
 
   const buyCoinsMutation = useMutation({
     mutationFn: async (packSlug: string) =>
-      apiPost<{ url: string }>(`/api/coin-packs/checkout/${packSlug}`),
+      apiPost<{
+        mode?: "stripe" | "simulated";
+        url?: string;
+        coinsAwarded?: number;
+        wallet?: { coins: number };
+      }>(`/api/coin-packs/checkout/${packSlug}`),
     onSuccess: (data) => {
-      if (data.url) window.location.assign(data.url);
+      if (data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      toast({
+        title: t("premium.coinsAdded"),
+        description: t("premium.coinsAddedDesc", {
+          count: data.coinsAwarded ?? 0,
+        }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
     },
     onError: (error: Error) => {
       toast({

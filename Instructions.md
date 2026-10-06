@@ -273,6 +273,9 @@ DATABASE_URL="paste-your-neon-url-here" pnpm --filter @workspace/db run push
 | `DATABASE_URL` | Neon connection string from Step 1 |
 | `CLERK_PUBLISHABLE_KEY` | `pk_live_…` |
 | `CLERK_SECRET_KEY` | `sk_live_…` |
+| `STRIPE_SECRET_KEY` | `sk_live_…` from [Stripe API keys](https://dashboard.stripe.com/apikeys) (required for paid coin packs + donations) |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…` from Stripe webhook endpoint `POST /api/webhooks/stripe` (event: `checkout.session.completed`) |
+| `APP_URL` | `https://habitganizer.tech` (Checkout success/cancel redirects) |
 | `SUPPORT_CONTACT_EMAIL` | Your email for `/support` |
 | `NODE_ENV` | `production` |
 | `PORT` | `10000` |
@@ -487,6 +490,9 @@ EAS auto-increments build numbers. You only manage the human-readable version in
 | `DATABASE_URL` | PostgreSQL connection string from Neon |
 | `CLERK_PUBLISHABLE_KEY` | Clerk live publishable key (`pk_live_…`) |
 | `CLERK_SECRET_KEY` | Clerk live secret key (`sk_live_…`) |
+| `STRIPE_SECRET_KEY` | Stripe secret key for coin-pack + donation Checkout (`sk_live_…`) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret for `/api/webhooks/stripe` (`whsec_…`) |
+| `APP_URL` | Public web origin for Checkout redirects (`https://habitganizer.tech`) |
 | `NODE_ENV` | Set to `production` |
 | `PORT` | `10000` (Render sets this; keep matching) |
 | `SUPPORT_CONTACT_EMAIL` | Email shown on `/support` |

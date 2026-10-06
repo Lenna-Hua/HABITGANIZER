@@ -13,8 +13,16 @@ import {
   userPetsTable,
   habitsTable,
   habitCompletionsTable,
+  walletsTable,
 } from "@workspace/db";
 import { eq, and, asc, desc, gte, isNull, or, sql, inArray } from "drizzle-orm";
+import {
+  getStripe,
+  httpStatusFromError,
+  isStripeConfigured,
+  resolveAppOrigin,
+} from "../lib/stripe";
+import { randomUUID } from "node:crypto";
 
 const router = Router();
 
@@ -151,6 +159,11 @@ router.get("/coin-packs", async (req, res) => {
       .from(coinPacksTable)
       .orderBy(asc(coinPacksTable.sortOrder));
 
+    // Keep a plain array for backward compatibility; advertise checkout mode via header.
+    res.setHeader(
+      "X-Coin-Checkout-Mode",
+      isStripeConfigured() ? "stripe" : "simulated",
+    );
     res.json(
       packs.map((p) => ({
         slug: p.slug,
@@ -170,7 +183,12 @@ router.get("/coin-packs", async (req, res) => {
   }
 });
 
-// Start Stripe Checkout for a coin pack (fulfillment via /api/webhooks/stripe).
+/**
+ * Buy a coin pack.
+ * - When STRIPE_SECRET_KEY is set: create a Stripe Checkout session (fulfill via webhook).
+ * - When Stripe is not configured: grant coins immediately (legacy simulated path) so
+ *   purchases keep working until Render is wired with Stripe keys.
+ */
 router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) => {
   const walletId = req.walletId;
   const slug = typeof req.params.slug === "string" ? req.params.slug : req.params.slug?.[0];
@@ -181,10 +199,6 @@ router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) =
   }
 
   try {
-    const { requireStripe, resolveAppOrigin } = await import("../lib/stripe");
-    const stripe = requireStripe();
-    const origin = resolveAppOrigin(req);
-
     const [pack] = await db
       .select()
       .from(coinPacksTable)
@@ -196,41 +210,97 @@ router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) =
     }
 
     const totalCoins = pack.coins + pack.bonusCoins;
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: pack.price,
-            product_data: {
-              name: pack.name,
-              description: `${totalCoins.toLocaleString()} coins. ${pack.description}`,
+    const stripe = getStripe();
+
+    if (stripe) {
+      const origin = resolveAppOrigin(req);
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: pack.price,
+              product_data: {
+                name: pack.name,
+                description: `${totalCoins.toLocaleString("en-US")} coins. ${pack.description}`,
+              },
             },
           },
+        ],
+        success_url: `${origin}/premium?coins=1`,
+        cancel_url: `${origin}/premium?coins=cancelled`,
+        client_reference_id: walletId,
+        metadata: {
+          kind: "coin_pack",
+          walletId,
+          packSlug: slug,
         },
-      ],
-      success_url: `${origin}/premium?coins=1`,
-      cancel_url: `${origin}/premium?coins=cancelled`,
-      client_reference_id: walletId,
-      metadata: {
-        kind: "coin_pack",
-        walletId,
-        packSlug: slug,
-      },
+      });
+
+      res.json({ mode: "stripe", url: session.url, sessionId: session.id });
+      return;
+    }
+
+    req.log.warn(
+      { packSlug: slug, walletId },
+      "Stripe is not configured; fulfilling coin pack purchase without payment (set STRIPE_SECRET_KEY on Render)",
+    );
+
+    const result = await db.transaction(async (tx) => {
+      await tx
+        .insert(walletsTable)
+        .values({ id: walletId, coins: totalCoins })
+        .onConflictDoUpdate({
+          target: walletsTable.id,
+          set: {
+            coins: sql`${walletsTable.coins} + ${totalCoins}`,
+            updatedAt: new Date(),
+          },
+        });
+
+      const [purchase] = await tx
+        .insert(coinPurchasesTable)
+        .values({
+          walletId,
+          packSlug: slug,
+          coinsAwarded: totalCoins,
+          amountPaid: 0,
+          stripePaymentIntentId: `sim_${randomUUID()}`,
+          status: "completed",
+        })
+        .returning();
+
+      const [wallet] = await tx
+        .select()
+        .from(walletsTable)
+        .where(eq(walletsTable.id, walletId));
+
+      return { purchase, wallet };
     });
 
-    res.json({ url: session.url, sessionId: session.id });
+    res.status(201).json({
+      mode: "simulated",
+      coinsAwarded: totalCoins,
+      bonusCoins: pack.bonusCoins,
+      purchaseId: result.purchase?.id,
+      wallet: {
+        coins: result.wallet?.coins ?? 0,
+        food: result.wallet?.food ?? 0,
+        water: result.wallet?.water ?? 0,
+      },
+    });
   } catch (err) {
-    const status = (err as { status?: number }).status ?? 500;
+    const status = httpStatusFromError(err);
     req.log.error({ err }, "Failed to create coin pack checkout");
     res.status(status).json({
       error:
         status === 503
           ? "Coin purchases are temporarily unavailable. Please try again later."
           : "Failed to start coin checkout",
+      code: (err as { code?: string }).code,
     });
   }
 });
