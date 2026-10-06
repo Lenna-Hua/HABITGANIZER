@@ -76,8 +76,13 @@ router.post("/donations/checkout", financialRateLimit, async (req, res) => {
       .returning();
 
     const session = await stripe.checkout.sessions.create({
+      ui_mode: "form",
       mode: "payment",
-      payment_method_types: ["card"],
+      billing_address_collection: "auto",
+      phone_number_collection: { enabled: false },
+      automatic_tax: { enabled: false },
+      submit_type: "auto",
+      integration_identifier: "custom_embedded_web_0001",
       line_items: [
         {
           quantity: 1,
@@ -91,24 +96,15 @@ router.post("/donations/checkout", financialRateLimit, async (req, res) => {
           },
         },
       ],
-      success_url: `${origin}/premium?donated=1`,
-      cancel_url: `${origin}/premium?donate=cancelled`,
-      client_reference_id: walletId,
-      metadata: {
-        kind: "donation",
-        walletId,
-        amountCents: String(amountCents),
-        donationId: String(pending.id),
-        message: message?.slice(0, 200) || "",
-      },
-    });
+    // Checkout Studio preview fields (ui_mode/form, integration_identifier) may predate local SDK typings.
+    } as Parameters<typeof stripe.checkout.sessions.create>[0]);
 
     await db
       .update(donationsTable)
       .set({ stripeCheckoutSessionId: session.id })
       .where(eq(donationsTable.id, pending.id));
 
-    res.json({ url: session.url, sessionId: session.id });
+    res.json({ client_secret: session.client_secret });
   } catch (err) {
     const status = (err as { status?: number }).status ?? 500;
     req.log.error({ err }, "Failed to create donation checkout");
