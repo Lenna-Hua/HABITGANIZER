@@ -1,13 +1,21 @@
 /**
  * Load monorepo root `.env` into process.env (Expo only auto-loads local `.env`).
- * Safe no-op if the file is missing. Does not override vars already set.
+ * Plain JS so EAS "Read app config" does not choke on TypeScript syntax.
  */
-import fs from "node:fs";
-import path from "node:path";
+const fs = require("node:fs");
+const path = require("node:path");
 
-import type { ConfigContext, ExpoConfig } from "expo/config";
+function clean(value) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
-function loadRootEnv(): void {
+function withScheme(url) {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
+
+function loadRootEnv() {
   const candidates = [
     path.resolve(__dirname, "../../.env"),
     path.resolve(process.cwd(), "../../.env"),
@@ -36,26 +44,16 @@ function loadRootEnv(): void {
     break;
   }
 
-  // One Clerk publishable key for web + mobile when EXPO_PUBLIC_* is omitted.
   if (!clean(process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY)) {
     const clerk = clean(process.env.CLERK_PUBLISHABLE_KEY);
     if (clerk) process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = clerk;
   }
 }
 
-function clean(value: string | undefined | null): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function withScheme(url: string): string {
-  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
-}
-
 loadRootEnv();
 
-export default ({ config }: ConfigContext): ExpoConfig => {
+/** @param {{ config: import("expo/config").ExpoConfig }} ctx */
+module.exports = ({ config }) => {
   const webOriginEnv = clean(process.env.EXPO_PUBLIC_WEB_ORIGIN);
   const apiUrlEnv = clean(process.env.EXPO_PUBLIC_API_URL);
   const replitDevDomain = clean(process.env.EXPO_PUBLIC_DOMAIN);
@@ -83,7 +81,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   const GOOGLE_SAMPLE_ADMOB = /ca-app-pub-3940256099942544/;
 
-  /** Google sample app IDs — replace via EXPO_PUBLIC_ADMOB_* in production. */
   const admobAndroidAppId =
     clean(process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID) ?? "ca-app-pub-3940256099942544~3347511713";
   const admobIosAppId =
@@ -105,17 +102,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     }
   }
 
-  const plugins: ExpoConfig["plugins"] = (config.plugins ?? []).map((plugin) => {
+  const plugins = (config.plugins ?? []).map((plugin) => {
     if (Array.isArray(plugin) && plugin[0] === "expo-router") {
-      const opts = (plugin[1] ?? {}) as Record<string, unknown>;
-      const merged: [string, Record<string, unknown>] = [
+      const opts = plugin[1] ?? {};
+      return [
         "expo-router",
         {
           ...opts,
           origin: webOrigin ?? opts.origin ?? "https://localhost/",
         },
       ];
-      return merged;
     }
     return plugin;
   });
@@ -131,7 +127,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
     name: config.name ?? "Habiganize",
-    slug: config.slug ?? "habitpup",
+    slug: config.slug ?? "habitganizer",
     plugins,
     extra: {
       ...(config.extra ?? {}),

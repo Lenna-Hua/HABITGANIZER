@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Habiganize",
-    "slug": "habitpup",
+    "slug": "habitganizer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -79,7 +79,11 @@
     },
     "extra": {
       "apiUrl": "",
-      "webOrigin": ""
-    }
+      "webOrigin": "",
+      "eas": {
+        "projectId": "5cd70b16-1483-4d1b-8521-a6192981a215"
+      }
+    },
+    "owner": "xunhubichs-team"
   }
 }
