@@ -54,7 +54,7 @@ any build can be submitted.
 ## 2. **Required**: configure your production API & web origin
 
 The mobile app reads its API base URL and web origin from environment
-variables at build time (see `app.config.ts` and `lib/config.ts`). There is
+variables at build time (see `app.config.js` and `lib/config.ts`). There is
 **no committed default** — you must set these before any production build,
 or `eas build --profile production` will fail fast with a clear error.
 
@@ -80,7 +80,7 @@ pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_WEB_ORIGIN \
 pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY \
   --value pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# AdMob — required for production (sample Google IDs are rejected by app.config.ts)
+# AdMob — required for production (sample Google IDs are rejected by app.config.js)
 pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_ADMOB_ANDROID_APP_ID \
   --value ca-app-pub-xxxxxxxx~yyyyyyyyyy
 pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_ADMOB_REWARDED_UNIT_ID \

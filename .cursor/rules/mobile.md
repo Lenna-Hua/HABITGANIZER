@@ -10,7 +10,7 @@ Read this when picking up **Play Store / EAS** or **habit-mobile** work again.
 | Development + Play plan | `artifacts/habit-mobile/DEVELOPMENT_PLAN.md` |
 | EAS profiles + submit | `artifacts/habit-mobile/eas.json` |
 | Store runbook (Apple + Google, secrets, checklists) | `artifacts/habit-mobile/STORE_SUBMISSION.md` |
-| Production env guard (fails build if API/web/AdMob missing) | `artifacts/habit-mobile/app.config.ts` |
+| Production env guard (fails build if API/web/AdMob missing) | `artifacts/habit-mobile/app.config.js` |
 | Android package / versioning | `artifacts/habit-mobile/app.json` |
 
 ## Google Play (high level)

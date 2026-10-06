@@ -558,7 +558,7 @@ Resolve these tracked issues before publishing:
 | `artifacts/api-server/build.mjs` | esbuild bundle script for the API |
 | `artifacts/api-server/package.json` | Build (`node ./build.mjs`) and start commands |
 | `artifacts/habit-mobile/app.json` | Expo config — bundle IDs, version, plugins |
-| `artifacts/habit-mobile/app.config.ts` | Dynamic Expo config — injects env vars, fails fast if missing |
+| `artifacts/habit-mobile/app.config.js` | Dynamic Expo config — injects env vars, fails fast if missing |
 | `artifacts/habit-mobile/eas.json` | EAS build profiles and store submit config |
 | `artifacts/habit-mobile/package.json` | `dev` (Replit), `dev:local` (local machine) scripts |
 | `artifacts/habit-mobile/STORE_SUBMISSION.md` | Original store submission guide |

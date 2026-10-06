@@ -76,7 +76,7 @@ Read this file at the start of a **new chat** before doing major work.
 
 - Expo app under `artifacts/habit-mobile` with `eas.json` (development / preview / production store profiles).
 - `DEVELOPMENT_PLAN.md` + `STORE_SUBMISSION.md` for Play/App Store (Netlify + Render URLs, AdMob secrets, Data safety).
-- `app.config.ts` production guards for API/web origin **and** real AdMob IDs.
+- `app.config.js` production guards for API/web origin **and** real AdMob IDs.
 - Clerk + API wiring with `useLayoutEffect` token bridge; legal links via `WEB_ORIGIN` / `API_URL`.
 - Health Connect read sync UI + hardened MainActivity plugin; permission_denied when grants empty.
 - Privacy HTML discloses Clerk, Health Connect reads, and AdMob.
