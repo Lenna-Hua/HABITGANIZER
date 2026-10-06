@@ -8,7 +8,7 @@ export function getStripe(): Stripe | null {
   if (!key) return null;
   if (!stripe) {
     stripe = new Stripe(key, {
-      // Checkout Studio embedded form preview requires this API version + beta flag.
+      // overrides the pinned API version for Checkout Studio form preview
       apiVersion:
         "2026-03-25.dahlia; custom_checkout_payment_form_preview=v1" as Stripe.LatestApiVersion,
       typescript: true,

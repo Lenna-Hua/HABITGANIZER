@@ -196,14 +196,10 @@ router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) =
     }
 
     const totalCoins = pack.coins + pack.bonusCoins;
+    // Checkout Studio shape (keys from env; return client_secret for embedded form — not session.url redirect).
     const session = await stripe.checkout.sessions.create({
-      ui_mode: "form",
       mode: "payment",
-      billing_address_collection: "auto",
-      phone_number_collection: { enabled: false },
-      automatic_tax: { enabled: false },
-      submit_type: "auto",
-      integration_identifier: "custom_embedded_web_0001",
+      ui_mode: "form",
       line_items: [
         {
           quantity: 1,
@@ -217,7 +213,9 @@ router.post("/coin-packs/checkout/:slug", financialRateLimit, async (req, res) =
           },
         },
       ],
-    // Checkout Studio preview fields (ui_mode/form, integration_identifier) may predate local SDK typings.
+      billing_address_collection: "auto",
+      submit_type: "auto",
+      integration_identifier: "custom_embedded_web_0001",
     } as Parameters<typeof stripe.checkout.sessions.create>[0]);
 
     res.json({ client_secret: session.client_secret });

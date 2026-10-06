@@ -32,17 +32,19 @@ These parameters were configured in Checkout Studio and are already set correctl
 
 | Parameter | Value |
 |-----------|-------|
+| `mode` | `payment` |
 | `ui_mode` | `form` (stripe-node `^22.3.2` ≥ 21.0.0) |
+| `line_items` | dynamic `price_data` (not `{{PRICE_ID}}` placeholder) |
 | `billing_address_collection` | `auto` |
-| `phone_number_collection` | `{ enabled: false }` |
-| `automatic_tax` | `{ enabled: false }` |
 | `submit_type` | `auto` |
 | `integration_identifier` | `custom_embedded_web_0001` |
 | API version | `2026-03-25.dahlia; custom_checkout_payment_form_preview=v1` |
 | Stripe.js | `https://js.stripe.com/dahlia/stripe.js` + beta `custom_checkout_payment_form_1` |
 | Appearance | theme `stripe`, labels `auto`, inputs `spaced` (see `stripe-checkout-form.ts`) |
 
-`payment_method_collection` is omitted because both sessions use `mode: "payment"` (only required for `subscription`).
+Session create matches the Checkout Studio server snippet. Secret key comes from `STRIPE_SECRET_KEY` (never hardcoded). Response is `{ client_secret }` for the embedded form — not `res.redirect(session.url)`.
+
+Client (`stripe-checkout-form.ts`) matches the Studio snippet: `Stripe(pk, { betas: ['custom_checkout_payment_form_1'] })` → `initCheckoutFormSdk({ clientSecret, appearance })` → `createForm({ layout: 'expanded' })` → `mount('#checkout-form')` → `loadActions` / `confirm`. Publishable key from `VITE_STRIPE_PUBLISHABLE_KEY` (never hardcoded).
 
 ## Setup and next steps
 

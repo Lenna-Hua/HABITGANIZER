@@ -46,9 +46,10 @@ export function StripeCheckoutDialog({
         await new Promise((r) => requestAnimationFrame(() => r(null)));
         if (cancelled) return;
         mountedRef.current?.destroy();
+        // Studio pattern: clientSecret may be a string or a Promise<string>
         mountedRef.current = await mountStripeCheckoutForm({
           publishableKey,
-          clientSecret,
+          clientSecret: Promise.resolve(clientSecret),
           mountSelector: `#${CHECKOUT_MOUNT_ID}`,
         });
         if (!cancelled) setReady(true);

@@ -1,9 +1,13 @@
-/** Stripe.js dahlia build globals (loaded from https://js.stripe.com/dahlia/stripe.js). */
+/**
+ * Stripe Checkout Studio embedded form (dahlia Stripe.js).
+ * Script: https://js.stripe.com/dahlia/stripe.js — never bundle or self-host.
+ */
 
+// Appearance from Checkout Studio
 export const STRIPE_CHECKOUT_APPEARANCE = {
   theme: "stripe",
-  labels: "auto",
   inputs: "spaced",
+  labels: "auto",
   variables: {
     borderRadius: "4px",
     colorBackground: "#ffffff",
@@ -58,42 +62,47 @@ export type MountedCheckoutForm = {
   destroy: () => void;
 };
 
+/**
+ * Mirrors Checkout Studio client snippet:
+ * Stripe(pk, { betas }) → initCheckoutFormSdk → createForm → mount('#checkout-form') → confirm
+ */
 export async function mountStripeCheckoutForm(options: {
   publishableKey: string;
+  /** Session client_secret, or a Promise that resolves to it (Studio fetch pattern). */
   clientSecret: string | Promise<string>;
-  mountSelector: string;
+  mountSelector?: string;
 }): Promise<MountedCheckoutForm> {
   if (typeof window.Stripe !== "function") {
     throw new Error("Stripe.js failed to load. Check the dahlia script in index.html.");
   }
 
+  // create an instance of Stripe on your Checkout Page
   const stripe = window.Stripe(options.publishableKey, {
     betas: ["custom_checkout_payment_form_1"],
   });
 
+  const appearance = STRIPE_CHECKOUT_APPEARANCE;
+
+  // create the Checkout instance
   const checkout = stripe.initCheckoutFormSdk({
     clientSecret: options.clientSecret,
-    appearance: STRIPE_CHECKOUT_APPEARANCE,
+    appearance,
   });
 
-  const form = checkout.createForm({ layout: "expanded" });
-  form.mount(options.mountSelector);
+  // Create and mount the Embedded form
+  const checkoutForm = checkout.createForm({ layout: "expanded" });
+  checkoutForm.mount(options.mountSelector ?? "#checkout-form");
 
   const loadActionsResult = await checkout.loadActions();
   if (loadActionsResult.type === "success") {
-    form.on("confirm", async (event) => {
-      try {
-        await loadActionsResult.actions.confirm({ formConfirmEvent: event });
-      } catch (error) {
-        console.error("Payment confirmation error:", error);
-        throw error;
-      }
+    checkoutForm.on("confirm", (event) => {
+      void loadActionsResult.actions.confirm({ formConfirmEvent: event });
     });
   }
 
   return {
     destroy: () => {
-      form.unmount?.();
+      checkoutForm.unmount?.();
       checkout.destroy?.();
     },
   };
