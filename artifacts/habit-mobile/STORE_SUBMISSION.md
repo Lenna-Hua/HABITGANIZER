@@ -54,38 +54,46 @@ any build can be submitted.
 ## 2. **Required**: configure your production API & web origin
 
 The mobile app reads its API base URL and web origin from environment
-variables at build time (see `app.config.ts` and `lib/config.ts`). There is
+variables at build time (see `app.config.js` and `lib/config.ts`). There is
 **no committed default** — you must set these before any production build,
 or `eas build --profile production` will fail fast with a clear error.
 
-Deploy the API server (and web app, if you also want a public web build) to
-a stable, publicly reachable HTTPS URL — typically a Replit Deployment
-(e.g. `https://<your-deployment>.replit.app`) or a custom domain.
+Deploy the API (Render) and web app (Netlify). Production defaults:
+
+- Web / legal / deep links: `https://habitganizer.tech`
+- API: `https://habiganize-api.onrender.com` (Netlify also proxies `/api`, `/privacy`, `/support`, `/terms`)
 
 Then register the URL with EAS once:
 
 ```bash
 cd artifacts/habit-mobile
 
-# The API URL the mobile app talks to (your deployed Express server)
+# The API URL the mobile app talks to (Render API or Netlify origin)
 pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_API_URL \
-  --value https://your-real-domain.example.com
+  --value https://habiganize-api.onrender.com
 
 # The web origin used by expo-router for deep linking and route resolution
 pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_WEB_ORIGIN \
-  --value https://your-real-domain.example.com
+  --value https://habitganizer.tech
 
 # Clerk — must be the **live** publishable key for production store builds
 pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY \
   --value pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# AdMob — required for production (sample Google IDs are rejected by app.config.js)
+pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_ADMOB_ANDROID_APP_ID \
+  --value ca-app-pub-xxxxxxxx~yyyyyyyyyy
+pnpm exec eas secret:create --scope project --name EXPO_PUBLIC_ADMOB_REWARDED_UNIT_ID \
+  --value ca-app-pub-xxxxxxxx/yyyyyyyyyy
 ```
 
-> API / web origin typically point at the same HTTPS deployment. Verify
-> `https://your-real-domain.example.com/api/healthz` returns 200 before
+> Verify `https://habitganizer.tech/api/healthz` (and `/privacy`, `/support`) return 200 before
 > kicking off a production build.
 
 Once set, every EAS build automatically picks them up. No code changes
 needed when the URL changes — just update the secret and rebuild.
+
+For the phased product + Play checklist, see [`DEVELOPMENT_PLAN.md`](./DEVELOPMENT_PLAN.md).
 
 ---
 
@@ -95,9 +103,11 @@ needed when the URL changes — just update the secret and rebuild.
 
 | Name | Purpose |
 |---|---|
-| `EXPO_PUBLIC_API_URL` | Mobile → API (`/api/...`) |
-| `EXPO_PUBLIC_WEB_ORIGIN` | Deep links / `expo-router` origin |
+| `EXPO_PUBLIC_API_URL` | Mobile → API (`/api/...`) — typically `https://habiganize-api.onrender.com` |
+| `EXPO_PUBLIC_WEB_ORIGIN` | Deep links / `expo-router` origin — `https://habitganizer.tech` |
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk in the built app (**`pk_live_…`** for production) |
+| `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` | AdMob Android app ID (required for production builds) |
+| `EXPO_PUBLIC_ADMOB_REWARDED_UNIT_ID` | Rewarded ad unit ID (required for production builds) |
 
 List with `pnpm exec eas secret:list --scope project`.
 
@@ -217,11 +227,12 @@ EAS handles the binary; the rest is manual in App Store Connect and Play Console
 - [ ] `pnpm --filter @workspace/habit-mobile run typecheck` passes.
 - [ ] `pnpm dlx expo-doctor@latest` reports no errors.
 - [ ] `app.json` `version`, iOS `buildNumber`, Android `versionCode` look right.
-- [ ] EAS secrets `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_WEB_ORIGIN`, and
-      `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (`pk_live_…`) are set for production.
-- [ ] `https://<domain>/api/healthz`, `/privacy`, and `/support` return 200 (support uses `SUPPORT_CONTACT_EMAIL` on the API).
-- [ ] `com.habitpup.app` is registered in both App Store Connect and Play Console.
+- [ ] EAS secrets `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_WEB_ORIGIN`,
+      `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (`pk_live_…`), and real AdMob IDs are set for production.
+- [ ] `https://habitganizer.tech/api/healthz`, `/privacy`, and `/support` return 200.
+- [ ] `com.habitpup.app` is registered in Play Console (and App Store Connect if shipping iOS).
 - [ ] EAS submit secrets (`AuthKey.p8`, `play-service-account.json`) are in place.
-- [ ] Privacy policy and support URLs are live.
+- [ ] Privacy policy and support URLs are live (and mention AdMob + Health Connect).
 - [ ] Store-listing assets (screenshots, descriptions, icons) uploaded.
-- [ ] Tested production build on a physical device via TestFlight / Play internal track.
+- [ ] Play declarations: Contains ads, Data safety, Health Connect / health permissions as applicable.
+- [ ] Tested production build on a physical device via Play internal track.

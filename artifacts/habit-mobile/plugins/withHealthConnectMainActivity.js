@@ -15,7 +15,12 @@ function withHealthConnectMainActivity(config) {
     }
 
     let contents = config.modResults.contents;
-    if (!contents || contents.includes("HealthConnectPermissionDelegate")) {
+    if (!contents) {
+      throw new Error(
+        "[withHealthConnectMainActivity] MainActivity contents were empty; cannot inject Health Connect permission delegate.",
+      );
+    }
+    if (contents.includes("HealthConnectPermissionDelegate")) {
       return config;
     }
 
@@ -44,4 +49,4 @@ function withHealthConnectMainActivity(config) {
   });
 }
 
-module.exports = createRunOncePlugin(withHealthConnectMainActivity, "with-health-connect-main-activity", "1.0.1");
+module.exports = createRunOncePlugin(withHealthConnectMainActivity, "with-health-connect-main-activity", "1.0.2");

@@ -64,34 +64,28 @@ Read this file at the start of a **new chat** before doing major work.
 
 ## Pending Tasks
 
-1. **Android Health Connect — MainActivity**: Ensure custom plugin **`artifacts/habit-mobile/plugins/withHealthConnectMainActivity.js`** runs and injects **`HealthConnectPermissionDelegate.setPermissionDelegate(this)`** immediately after **`super.onCreate(...)`** in **`MainActivity.kt`**; run **`pnpm exec expo prebuild --platform android --clean`** and confirm; then EAS/dev build + on-device sync.
-2. ~~**Typecheck hygiene**~~: ✅ **Done (2026-06-01)** — Built lib `.d.ts` files, fixed `pups.tsx`, `calendar.tsx`, `spinner.tsx` type errors. Root `pnpm run typecheck` passes for all shippable packages (api-server, habit-tracker, habit-mobile, scripts). Only `mockup-sandbox` fails (React types mismatch — non-critical).
-3. ~~**Mobile typecheck**~~: ✅ **Passes** (2026-06-01).
-4. **Production deploy (web)**: ✅ **Netlify** (`habiganizer`, `https://habitganizer.tech`) with GitHub auto-build on `main`. API stays on **Render** (`habiganize-api.onrender.com`); Netlify proxies `/api`, `/privacy`, `/support`, `/terms`. Not Vercel.
-5. **Operational**: Prefer **`pnpm --filter @workspace/api-server run dev:local`** for API during web dev without full rebuild loops; root `.env` must stay out of commits.
-6. ~~**Social DB migrations**~~: ✅ **Done (2026-06-01)** — Drizzle push created `user_social_profiles`, `friend_requests`, `friendships` tables.
-7. ~~**API verification**~~: ✅ **Done (2026-06-01)** — All social endpoints return proper 401 (auth-protected). Endpoints verified: `/api/friends/*`, `/api/leaderboard`. Smoke-test with real Clerk user still needed.
-8. ~~**UI wiring (web)**~~: ✅ **Done (2026-06-01)** — Created `friends.tsx` and `leaderboard.tsx` pages, added routes in `App.tsx`, added nav items in `layout.tsx`. Typecheck + build pass.
-9. ~~**UI wiring (mobile)**~~: ✅ **Done (2026-06-01)** — Created `friends.tsx` and `leaderboard.tsx` tab screens, added to `_layout.tsx`, updated `usePrefetchOnFocus.ts`. Typecheck passes.
-10. **End-to-end testing**: ✅ **Endpoint verification done (2026-06-01)** — All social endpoints return proper 401 without auth. Full authenticated flow still needs testing with real Clerk session.
-11. **Backend security audit**: ✅ **Done (2026-06-01)** — Found and fixed 28 vulnerabilities (2 Critical, 4 High, 16 Medium, 6 Low). Key fixes: CORS lockdown, rate limiting, race condition transactions, helmet, Zod validation, global error handler. Typecheck + build pass.
+1. **Android Health Connect — device QA**: ✅ Prebuild injection verified (`MainActivity.kt` contains `setPermissionDelegate`). Offline transform check: `scripts/verify-health-connect-plugin.cjs`. Still need on-device sync QA on a physical Android device.
+2. **Google Play publish path**: Follow `artifacts/habit-mobile/DEVELOPMENT_PLAN.md` + `STORE_SUBMISSION.md` — `eas init`, EAS secrets (API/web/Clerk live/AdMob), Play Console listing, Data safety, Health Connect declaration, internal → closed → production.
+3. **Operational**: Prefer `pnpm --filter @workspace/api-server run dev:local` for API during web dev; root `.env` must stay out of commits.
+4. **End-to-end testing**: Authenticated mobile smoke on a physical Android device (internal track) still needed.
+5. **Product backlog (post–internal)**: Streak freeze, ad-reward server integrity, i18n parity — see DEVELOPMENT_PLAN.md Phase 1.
 
 ## Mobile deploy — progress and remaining work
 
 **In place**
 
-- Expo app under `artifacts/habit-mobile` with **`eas.json`** (development / preview / **production** store profiles).
-- **`STORE_SUBMISSION.md`**: Expanded **Google Play Console** checklist (service account, testing policy link, Data safety / Clerk, promotion path), EAS secrets incl. `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`.
-- **`app.config.ts` / `app.json`**: bundle IDs (`com.habitpup.app`), Expo 54.
-- Clerk + API wiring: **`setAuthTokenGetter`** (via **`useLayoutEffect`** to avoid unauthenticated first fetch), **`setBaseUrl(API_URL)`** in `app/_layout.tsx`.
-- **Privacy / support URLs for store listings:** Express serves **`/privacy`** (static HTML) and **`/support`** (`SUPPORT_CONTACT_EMAIL`); Vite dev proxies those paths to the API.
-- **Health Connect**: Read permissions declared in **`app.json`**; Google Play **[health apps declaration](https://developer.android.com/health-and-fitness/guides/health-connect/plan/export-export)** / policy still required before wide Play release (timeline per Google).
+- Expo app under `artifacts/habit-mobile` with `eas.json` (development / preview / production store profiles).
+- `DEVELOPMENT_PLAN.md` + `STORE_SUBMISSION.md` for Play/App Store (Netlify + Render URLs, AdMob secrets, Data safety).
+- `app.config.js` production guards for API/web origin **and** real AdMob IDs.
+- Clerk + API wiring with `useLayoutEffect` token bridge; legal links via `WEB_ORIGIN` / `API_URL`.
+- Health Connect read sync UI + hardened MainActivity plugin; permission_denied when grants empty.
+- Privacy HTML discloses Clerk, Health Connect reads, and AdMob.
 
 **To do before store release**
 
-1. **Expo / EAS**: `eas login`; from `artifacts/habit-mobile` run **`eas init`** / link project if not linked (`extra.eas.projectId` in `app.json`).
-2. **Mobile env**: Local **`artifacts/habit-mobile/.env`** for dev; production uses EAS project secrets per `STORE_SUBMISSION.md`.
-3. **`eas.json` → `submit.production`**: Replace placeholders (`REPLACE_WITH_APPLE_ID_EMAIL`, App Store Connect IDs); place **`secrets/play-service-account.json`** for Play upload.
-4. **Apple / Google**: Developer accounts, Play Data safety / ratings, screenshots, listing copy; use live **`https://…/privacy`** and **`/support`** URLs.
-5. **Build**: `eas build --profile production` for Android (and iOS if shipping); **`eas submit --platform android`** after builds.
-6. **IAP / subscriptions** (if product requires): not assumed done — confirm with product plan.
+1. `eas login` / `eas init` → `extra.eas.projectId`.
+2. EAS secrets: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_WEB_ORIGIN`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (`pk_live_…`), AdMob Android + rewarded unit IDs.
+3. `secrets/play-service-account.json` + Play Console app `com.habitpup.app`.
+4. Listing assets, Data safety, ads + Health Connect declarations.
+5. `eas build --profile production --platform android` then `eas submit` (internal draft).
+6. IAP / subscriptions only if product requires Play Billing.
